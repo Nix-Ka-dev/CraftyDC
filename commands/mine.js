@@ -1,4 +1,3 @@
-// commands/mine.js
 import Miner from "../models/miner.js";
 import Tools from "../models/tools.js";
 
@@ -14,10 +13,15 @@ const emoji = { stone: "🪨", coal: "🔥", iron: "⛏️", diamond: "💎", em
 const bonusMapping = { iron: "diamond", diamond: "emerald" };
 const pickaxeDurabilityLoss = 1;
 
-function requiredXP(level) { return Math.floor(50 * Math.pow(level, 1.5)); }
+// XP + levels
+function requiredXP(level) {
+  return Math.floor(50 * Math.pow(level, 1.5));
+}
+
 function addXP(miner, amount) {
   miner.xp += amount;
   let leveledUp = false;
+
   while (miner.xp >= requiredXP(miner.level)) {
     miner.xp -= requiredXP(miner.level);
     miner.level++;
@@ -26,60 +30,162 @@ function addXP(miner, amount) {
   return leveledUp;
 }
 
+// Role mapping
+const levelRoles = [
+  { minLevel: 1, roleName: "Novice" },
+  { minLevel: 3, roleName: "Apprentice" },
+  { minLevel: 5, roleName: "Miner" },
+  { minLevel: 7, roleName: "Expert" },
+  { minLevel: 10, roleName: "Master" },
+  { minLevel: 15, roleName: "Legend" }
+];
+
+function getRoleForLevel(level) {
+  let role = levelRoles[0].roleName;
+  for (const r of levelRoles) {
+    if (level >= r.minLevel) role = r.roleName;
+  }
+  return role;
+}
+
 export default {
   name: "mine",
-  description: "Mine resources and gain XP & inventory",
-  async execute({ api, data }) {
-    const userId = data.author.id;
-    const guildId = data.guild_id;
+  description: "Mine resources and gain XP & Discord roles",
+  async execute(interaction) {
+    const allowedChannelId = "1446079976305721454";
+    if (interaction.channel.id !== allowedChannelId) {
+      return interaction.reply({
+        content: "❌ You can only use this command in the vox-craft channel!",
+        ephemeral: true
+      });
+    }
 
-    let miner = await Miner.findOne({ userId, guildId });
-    if (!miner) miner = await Miner.create({ userId, guildId, level: 1, xp: 0, lastMine: 0, inventory: {} });
+    const userId = interaction.user.id;
+    const guild = interaction.guild;
 
-    let tools = await Tools.findOne({ userId, guildId });
-    if (!tools) tools = await Tools.create({ userId, guildId, swords: [], pickaxes: [] });
+    let miner = await Miner.findOne({ userId, guildId: guild.id });
+    if (!miner) {
+      miner = await Miner.create({
+        userId,
+        guildId: guild.id,
+        level: 1,
+        xp: 0,
+        lastMine: 0,
+        inventory: {}
+      });
+    }
+
+    let tools = await Tools.findOne({ userId, guildId: guild.id });
+    if (!tools) {
+      tools = await Tools.create({
+        userId,
+        guildId: guild.id,
+        swords: [],
+        pickaxes: []
+      });
+    }
 
     // Cooldown
     const cooldown = 3600 * 1000;
     if (Date.now() - miner.lastMine < cooldown) {
       const left = Math.ceil((cooldown - (Date.now() - miner.lastMine)) / 1000 / 60);
-      return await api.channels.createMessage(data.channel_id, { content: `⏳ You can mine again in ${left} minutes.`, message_reference: { message_id: data.id } });
+      return interaction.reply({
+        content: `⏳ You can mine again in ${left} minutes.`,
+        ephemeral: true
+      });
     }
+
     miner.lastMine = Date.now();
 
     // Roll drop
     const roll = Math.random() * 100;
-    let drop = "stone", cumulative = 0;
+    let drop = "stone";
+    let cumulative = 0;
+
     for (const d of drops) {
       cumulative += d.chance;
-      if (roll <= cumulative) { drop = d.item; break; }
+      if (roll <= cumulative) {
+        drop = d.item;
+        break;
+      }
     }
 
-    // Pickaxe logic
+    // PICKAXE LOGIC (bonus + durability)
     if (tools.pickaxes.length > 0) {
       const priority = { stone: 1, iron: 2, diamond: 3 };
-      const bestPickaxe = tools.pickaxes.reduce((a, b) => priority[a.material] > priority[b.material] ? a : b);
-      const index = tools.pickaxes.findIndex(p => p.material === bestPickaxe.material && p.durability === bestPickaxe.durability);
-      if (bonusMapping[drop] && bestPickaxe.material === drop && Math.random() < 0.5) drop = bonusMapping[drop];
+
+      // choose best pickaxe
+      const bestPickaxe = tools.pickaxes.reduce((a, b) =>
+        priority[a.material] > priority[b.material] ? a : b
+      );
+
+      const index = tools.pickaxes.findIndex(p =>
+  p.material === bestPickaxe.material &&
+  p.durability === bestPickaxe.durability
+);
+
+
+      // BONUS DROP (only iron → diamond OR diamond → emerald)
+      if (
+        bonusMapping[drop] &&
+        bestPickaxe.material === drop &&
+        Math.random() < 0.5
+      ) {
+        drop = bonusMapping[drop];
+      }
+
+      // ALWAYS reduce durability
       tools.pickaxes[index].durability -= pickaxeDurabilityLoss;
-      if (tools.pickaxes[index].durability <= 0) tools.pickaxes.splice(index, 1);
+
+      // delete if broken
+      if (tools.pickaxes[index].durability <= 0) {
+        tools.pickaxes.splice(index, 1);
+      }
+
       await tools.save();
     }
 
     // Update inventory
     miner.inventory[drop] = (miner.inventory[drop] || 0) + 1;
-    if (drop === "coal") miner.inventory.stone = (miner.inventory.stone || 0) + 1;
 
+    if (drop === "coal") {
+      miner.inventory.stone = (miner.inventory.stone || 0) + 1;
+    }
+
+    // XP gain
     const xpGained = drops.find(d => d.item === drop).xp;
     const leveledUp = addXP(miner, xpGained);
+
     await miner.save();
 
+    // Discord roles
+    const member = await guild.members.fetch(userId);
+    const newRoleName = getRoleForLevel(miner.level);
+    const allRoles = levelRoles.map(r => r.roleName);
+
+    for (const roleName of allRoles) {
+      const role = guild.roles.cache.find(r => r.name === roleName);
+      if (role && member.roles.cache.has(role.id) && role.name !== newRoleName) {
+        await member.roles.remove(role);
+      }
+    }
+
+    const newRole = guild.roles.cache.find(r => r.name === newRoleName);
+    if (newRole && !member.roles.cache.has(newRole.id)) {
+      await member.roles.add(newRole);
+    }
+
+    // Reply message
     let reply = `⛏️ You mined **1 ${emoji[drop]} ${drop}**`;
     if (drop === "coal") reply += ` and 1 ${emoji.stone} stone`;
     reply += ` and earned ${xpGained} XP!\n`;
-    if (leveledUp) reply += `🎉 You leveled up to **level ${miner.level}**!`;
-    else reply += `Your current level: **${miner.level}**`;
 
-    await api.channels.createMessage(data.channel_id, { content: reply, message_reference: { message_id: data.id } });
+    if (leveledUp) {
+      reply += `🎉 You leveled up to **level ${miner.level}** and are now **${newRoleName}**!`;
+    } else {
+      reply += `Your current rank: **${newRoleName}** (Level ${miner.level})`;
+    }
+
+    interaction.reply({ content: reply });
   }
 };

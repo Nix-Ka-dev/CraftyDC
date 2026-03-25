@@ -1,77 +1,66 @@
-// commands/serverstatus.js
 import fetch from "node-fetch";
 import https from "https";
-
-const agent = new https.Agent({ rejectUnauthorized: false });
+import { EmbedBuilder, AttachmentBuilder } from "discord.js";
 
 export default {
-  name: "serverstatus",
-  description: "Shows status of the Minecraft server",
-  
-  async execute({ api, data }) {
-    try {
-      const res = await fetch(`${process.env.CRAFTY_HOST}/api/v2/servers/${process.env.CRAFTY_SERVER_ID}/stats`, {
-        headers: { Authorization: `Bearer ${process.env.CRAFTY_API_KEY}` },
-        agent
-      });
-      
-      const response = await res.json();
-      const server = response.data;
+    name: "serverstatus",
+    description: "Shows status of the Minecraft server",
 
-      const running = server.running;
-      const online = server.online || 0;
-      const max = server.max || 0;
-      const uptimeStr = running && server.started ? formatUptime(server.started) : "Offline";
-      const motd = server.desc?.replace(/§./g, "").trim() || "No MOTD";
+    async execute(interaction) {
+        try {
+            const agent = new https.Agent({ rejectUnauthorized: false });
 
-      let content = `**MC Server Status:** ${process.env.MINECRAFT_SERVER_IP}\n`;
-      content += `**Status:** ${running ? "🟢 Online" : "🔴 Offline"}\n`;
-      content += `**Players:** ${online}/${max}\n`;
-      content += `**Uptime:** ${uptimeStr}\n`;
-      content += `**Description:** ${motd}`;
+            const res = await fetch(`${process.env.CRAFTY_HOST}/api/v2/servers/${process.env.CRAFTY_SERVER_ID}/stats`, {
+                headers: { Authorization: `Bearer ${process.env.CRAFTY_API_KEY}` },
+                agent
+            });
 
-      const files = [];
-      if (server.icon) {
-        const buffer = Buffer.from(server.icon, "base64");
-        files.push({ name: "icon.png", file: buffer }); // ✅ Fluxer-kompatibel
-      }
+            const response = await res.json();
+            const data = response.data;
 
-      await api.channels.createMessage(data.channel_id, {
-        content,
-        files: files.length ? files : undefined,
-        message_reference: { message_id: data.id }
-      });
+            const running = data.running;
+            const online = data.online || 0;
+            const max = data.max || 0;
 
-    } catch (err) {
-      console.error("Error fetching server status:", err);
-      await api.channels.createMessage(data.channel_id, { 
-        content: "❌ Failed to fetch server status.",
-        message_reference: { message_id: data.id }
-      });
+            let uptimeStr = running && data.started ? formatUptime(data.started) : "Offline";
+
+            const motd = data.desc?.replace(/§./g, "").trim() || "No MOTD";
+
+            const embed = new EmbedBuilder()
+                .setTitle(`MC Server Status: ${process.env.MINECRAFT_SERVER_IP}`)
+                .setColor(running ? 0x00ff00 : 0xff0000)
+                .addFields(
+                    { name: "Status", value: running ? "🟢 Online" : "🔴 Offline", inline: true },
+                    { name: "Players", value: `${online}/${max}`, inline: true },
+                    { name: "Uptime", value: uptimeStr, inline: true },
+                    { name: "Description", value: motd }
+                )
+                .setTimestamp();
+
+            const files = [];
+            if (data.icon) {
+                const buffer = Buffer.from(data.icon, "base64");
+                files.push(new AttachmentBuilder(buffer, { name: "icon.png" }));
+                embed.setThumbnail("attachment://icon.png");
+            }
+
+            interaction.reply({ embeds: [embed], files, ephemeral: true });
+
+        } catch (err) {
+            interaction.reply({ content: "Failed to fetch server status.", ephemeral: true });
+        }
     }
-  }
 };
+
 function formatUptime(startString) {
-  const started = new Date(startString.replace(" ", "T") + "Z"); // UTC erzwingen
-  const now = new Date();
-  let diff = Math.floor((now - started) / 1000); // Differenz in Sekunden
+    const started = new Date(startString.replace(" ", "T"));
+    const now = new Date();
+    const ms = now - started;
 
-  if (diff <= 0) return "0s"; // gerade gestartet
+    const s = Math.floor(ms / 1000) % 60;
+    const m = Math.floor(ms / 60000) % 60;
+    const h = Math.floor(ms / 3600000) % 24;
+    const d = Math.floor(ms / 86400000);
 
-  const days = Math.floor(diff / 86400);
-  diff -= days * 86400;
-
-  const hours = Math.floor(diff / 3600);
-  diff -= hours * 3600;
-
-  const minutes = Math.floor(diff / 60);
-  const seconds = diff - minutes * 60;
-
-  let str = "";
-  if (days > 0) str += `${days}d `;
-  if (hours > 0) str += `${hours}h `;
-  if (minutes > 0) str += `${minutes}m `;
-  str += `${seconds}s`;
-
-  return str.trim();
+    return `${d ? d + "d " : ""}${h ? h + "h " : ""}${m ? m + "m " : ""}${s}s`;
 }

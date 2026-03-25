@@ -20,7 +20,7 @@ export default {
   ],
 
   async execute(interaction) {
-    const allowedChannelId = process.env.VOX_CHANNEL;
+    const allowedChannelId = "1446079976305721454"; // replace with your channel ID
     if (interaction.channel.id !== allowedChannelId) {
       return interaction.reply({
         content: "❌ You can only use this command in the designated vox-craft channel!",

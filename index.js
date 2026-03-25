@@ -1,77 +1,67 @@
-import { Client, GatewayDispatchEvents } from '@discordjs/core';
-import { REST } from '@discordjs/rest';
-import { WebSocketManager } from '@discordjs/ws';
-import dotenv from 'dotenv';
-import fs from 'fs';
-import mongoose from 'mongoose';
+import { Client, GatewayIntentBits, ActivityType, Collection } from "discord.js";
+import dotenv from "dotenv";
+import fs from "fs";
+import mongoose from "mongoose";
 dotenv.config();
 
-const token = process.env.BOT_TOKEN;
-if (!token) throw new Error('You forgot the Fluxer bot token!');
-const mongoURI = process.env.MONGO_URI;
-if (!mongoURI) throw new Error('You forgot the MONGO_URI!');
-
-const PREFIX = "!";
-
-// --- Bot starten NUR wenn DB verbunden ist ---
-mongoose.connect(mongoURI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
-.then(() => {
-  console.log('✅ MongoDB connected');
-  startBot();
-})
-.catch(err => {
-  console.error('❌ MongoDB connection error:', err);
-  process.exit(1);
+// Create client
+const client = new Client({
+    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
 });
 
-// --- Bot-Startfunktion ---
-async function startBot() {
-  const rest = new REST({ api: 'https://api.fluxer.app', version: '1' }).setToken(token);
-  const gateway = new WebSocketManager({ intents: 0, rest, token, version: '1' });
-  const client = new Client({ rest, gateway });
+// MongoDB
+mongoose.connect(process.env.MONGO_URI)
+    .then(() => console.log("MongoDB connected"))
+    .catch(err => console.error("MongoDB error:", err));
 
-  // --- Commands laden ---
-  client.commands = new Map();
-  const commandFiles = fs.readdirSync('./commands').filter(f => f.endsWith('.js'));
-  for (const file of commandFiles) {
+// Command handler
+client.commands = new Collection();
+const commandFiles = fs.readdirSync("./commands").filter(file => file.endsWith(".js"));
+for (const file of commandFiles) {
     const command = await import(`./commands/${file}`);
     client.commands.set(command.default.name, command.default);
-  }
+}
 
-  // --- Ready Event ---
-  client.on(GatewayDispatchEvents.Ready, ({ data }) => {
-    console.log(`Logged in as @${data.user.username}#${data.user.discriminator}`);
-  });
+// Ready
+client.on("ready", (c) => {
+    console.log(`Bot logged in as ${c.user.tag}`);
+    c.user.setPresence({
+        status: "online",
+        activities: [{ name: "🗒️Documents of your Data🗒️", type: ActivityType.Watching }],
+    });
+});
+client.on("guildMemberAdd", async (member) => {
+    try {
+        // Welcome message
+        const channel = member.guild.channels.cache.get(process.env.WELCOME_CHANNEL_ID);
+        if (channel) {
+            await channel.send(`👋 Hallooo ${member}! \nBitte lies den info channel da wichtiger stuff und so`);
+        }
 
-  // --- Message Event ---
-  client.on(GatewayDispatchEvents.MessageCreate, async ({ api, data }) => {
-    if (data.author.bot || !data.content.startsWith(PREFIX)) return;
-
-    const args = data.content.slice(PREFIX.length).trim().split(/ +/);
-    const commandName = args.shift().toLowerCase();
-    const command = client.commands.get(commandName);
-
-    if (!command) {
-      return api.channels.createMessage(data.channel_id, {
-        content: `Unbekannter Command: \`${commandName}\`. Tippe \`!help\` für die Liste der Commands.`,
-        message_reference: { message_id: data.id }
-      });
+        // Assign default role
+        const role = member.guild.roles.cache.get(process.env.DEFAULT_ROLE_ID);
+        if (role) {
+            await member.roles.add(role);
+        }
+    } catch (err) {
+        console.error("Error handling new member:", err);
     }
+});
+
+
+// Interaction handler
+client.on("interactionCreate", async (interaction) => {
+    if (!interaction.isChatInputCommand()) return;
+
+    const command = client.commands.get(interaction.commandName);
+    if (!command) return;
 
     try {
-      await command.execute({ api, data, args, client });
-    } catch (err) {
-      console.error("Error executing command:", err);
-      await api.channels.createMessage(data.channel_id, { 
-        content: "❌ Fehler beim Ausführen des Befehls!", 
-        message_reference: { message_id: data.id } 
-      });
+        await command.execute(interaction, client);
+    } catch (error) {
+        console.error(error);
+        interaction.reply({ content: "Error executing command.", ephemeral: true });
     }
-  });
+});
 
-  // --- Gateway starten ---
-  gateway.connect();
-}
+client.login(process.env.BOT_TOKEN);
