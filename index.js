@@ -27,7 +27,7 @@ client.on("ready", (c) => {
     console.log(`Bot logged in as ${c.user.tag}`);
     c.user.setPresence({
         status: "online",
-        activities: [{ name: "🗒️Documents of your Data🗒️", type: ActivityType.Watching }],
+        activities: [{ name: "the Crafty Minecraft Server", type: ActivityType.Watching }],
     });
 });
 client.on("guildMemberAdd", async (member) => {
