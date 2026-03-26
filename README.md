@@ -22,9 +22,11 @@
 | --------------- | ------------------------------------------------------------ | ------------------- |
 | `/whitelist`    | Add your Minecraft username to the whitelist.                | Ephemeral (Private) |
 | `/serverstatus` | Displays online status, player count, and more.              | Ephemeral (Private) |
+| `/op`         | (Admin) Make a player an operator on your server             | Ephermal (Private)  |
 | `/mine`         | Mine resources (Stone to Emerald). (Available once per hour) | Public              |
 | `/sell`         | Sell collected emeralds for XP boosts.                       | Public              |
-| `/sell`         | (Admin) Make a player an operator on your server             | Ephermal (Private)  |
+| `/inventory`         | You can see your mini-game inventory.                       | Ephermal (Private)              |
+| `/craft`         | You can crafty a pickaxe for better chances of getting better ressources                      | Public              |
 
 ## Levels & Ranks
 
