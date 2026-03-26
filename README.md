@@ -10,6 +10,12 @@
 
 - Economy System: Sell found emeralds for additional XP boosts.
 
+## Contributing & Support
+
+- Missing a feature? Open an issue or reach out to me on Discord: @nix_ka
+
+- Want to help? Contributions are welcome! Feel free to fork this repo and create a pull request.
+
 ## 🛠 Commands
 
 | **Command**     | **Description**                                              | **Visibility**      |
