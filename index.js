@@ -9,11 +9,13 @@ const client = new Client({
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
 });
 
-// MongoDB
-mongoose.connect(process.env.MONGO_URI)
+const voxCraftEnabled = process.env.ENABLE_VOX_CRAFT !== 'false';
+if(voxCraftEnabled){
+    mongoose.connect(process.env.MONGO_URI)
     .then(() => console.log("MongoDB connected"))
     .catch(err => console.error("MongoDB error:", err));
-
+   
+}
 // Command handler
 client.commands = new Collection();
 const commandFiles = fs.readdirSync("./commands").filter(file => file.endsWith(".js"));
@@ -27,21 +29,26 @@ client.on("ready", (c) => {
     console.log(`Bot logged in as ${c.user.tag}`);
     c.user.setPresence({
         status: "online",
-        activities: [{ name: "the Crafty Minecraft Server", type: ActivityType.Watching }],
+        activities: [{ name: "Crafty API", type: ActivityType.Watching }],
     });
 });
+const welcomeEnabled = process.env.ENABLE_WELCOME_MSG !== 'false';
+const welcomeRoleEnabled = process.env.ENABLE_WELCOME_ROLE !== 'false';
+
 client.on("guildMemberAdd", async (member) => {
     try {
-        // Welcome message
-        const channel = member.guild.channels.cache.get(process.env.WELCOME_CHANNEL_ID);
-        if (channel) {
-            await channel.send(`👋 Hallooo ${member}! \nBitte lies den info channel da wichtiger stuff und so`);
+        // 1. Willkommensnachricht (Optional)
+        if (welcomeEnabled) {
+            const channel = member.guild.channels.cache.get(process.env.WELCOME_CHANNEL_ID);
+            if (channel) {
+                await channel.send(process.env.WELCOME_MSG || `👋 Heey ${member}! \nWelcome to the server!`);
+            }
         }
-
-        // Assign default role
-        const role = member.guild.roles.cache.get(process.env.DEFAULT_ROLE_ID);
+        if (welcomeRoleEnabled){
+            const role = member.guild.roles.cache.get(process.env.DEFAULT_ROLE_ID);
         if (role) {
             await member.roles.add(role);
+        }   
         }
     } catch (err) {
         console.error("Error handling new member:", err);

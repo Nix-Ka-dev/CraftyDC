@@ -7,49 +7,7 @@ const CLIENT_ID = process.env.CLIENT_ID;
 const GUILD_ID = process.env.GUILD_ID;
 
 const commands = [
-  {
-    name: "mine",
-    description: "Mine an ore to make items and earn XP"
-  },
-  {
-    name: "craft",
-    description: "Craft a sword or pickaxe",
-    options: [
-      {
-        name: "type",
-        type: 3, // STRING
-        description: "Choose sword or pickaxe",
-        required: true,
-        choices: [
-          { name: "Sword", value: "sword" },
-          { name: "Pickaxe", value: "pickaxe" }
-        ]
-      },
-      {
-        name: "material",
-        type: 3, // STRING
-        description: "Choose material (stone, iron, diamond)",
-        required: true,
-        choices: [
-          { name: "Stone", value: "stone" },
-          { name: "Iron", value: "iron" },
-          { name: "Diamond", value: "diamond" }
-        ]
-      }
-    ]
-  },
-  {
-    name: "inventory",
-    description: "View your ores, swords, and pickaxes"
-  },
-  {
-    name: "sell",
-    description: "Sell emeralds for XP"
-  },
-  {
-    name: "level",
-    description: "Check your current level and XP"
-  },
+
   {
     name: "whitelist",
     description: "Add a player to the Minecraft whitelist",
@@ -80,15 +38,76 @@ const commands = [
     description: "Shows the Minecraft server status"
   }
 ];
+const voxCommands = [
+  {
+    name: "mine",
+    description: "Mine an ore to make items and earn XP"
+  },
+    {
+    name: "craft",
+    description: "Craft a sword or pickaxe",
+    options: [
+      {
+        name: "type",
+        type: 3, // STRING
+        description: "Choose sword or pickaxe",
+        required: true,
+        choices: [
+          { name: "Sword", value: "sword" },
+          { name: "Pickaxe", value: "pickaxe" }
+        ]
+      },
+      {
+        name: "material",
+        type: 3, // STRING
+        description: "Choose material (stone, iron, diamond)",
+        required: true,
+        choices: [
+          { name: "Stone", value: "stone" },
+          { name: "Iron", value: "iron" },
+          { name: "Diamond", value: "diamond" }
+        ]
+      }
+    ]
+  },
+    {
+    name: "inventory",
+    description: "View your ores, swords, and pickaxes"
+  },
+  {
+    name: "sell",
+    description: "Sell emeralds for XP"
+  },
+  {
+    name: "level",
+    description: "Check your current level and XP"
+  }
+];
+
+// Die Logik zum Zusammenführen:
+const voxCraftEnabled = process.env.ENABLE_VOX_CRAFT !== 'true';
+
+// Wir erstellen eine finale Liste
+const finalCommands = [...commands]; // Startet mit den Standard-Commands
+
+if (voxCraftEnabled) {
+    finalCommands.push(...voxCommands); // Fügt die Vox-Commands hinzu, wenn aktiv
+}
 
 const rest = new REST({ version: "10" }).setToken(DISCORD_BOT_TOKEN);
 
 (async () => {
-  try {
-    console.log("Registering slash commands...");
-    await rest.put(Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID), { body: commands });
-    console.log("Slash commands registered successfully!");
-  } catch (err) {
-    console.error(err);
-  }
+    try {
+        console.log(`Registering ${finalCommands.length} slash commands...`);
+        
+        // Nur EIN Put-Request mit der kombinierten Liste
+        await rest.put(
+            Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID), 
+            { body: finalCommands }
+        );
+
+        console.log("Slash commands registered successfully!");
+    } catch (err) {
+        console.error("Error registering commands:", err);
+    }
 })();
