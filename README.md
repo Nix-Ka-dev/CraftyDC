@@ -45,15 +45,22 @@ Create a folder for the bot and set up a `.env` file (or `stack.env` for Portain
 ```env
 CRAFTY_API_KEY=Your_Crafty_API_key
 BOT_TOKEN=Your_Discord_Bot_token
-WELCOME_CHANNEL_ID=ID_of_the_welcome_channel
-DEFAULT_ROLE_ID=ID_of_the_default_role
 CRAFTY_SERVER_ID=Your_Crafty_Server_ID
 CRAFTY_HOST=https://your-crafty-ip:8443
 MINECRAFT_SERVER_IP=your.server.ip
 CLIENT_ID=Client_ID_of_the_bot
 GUILD_ID=Your_Discord_Server_ID
-MONGO_URI=mongodb://mongodb-ip:27017/discordbot
-VOX_CHANNEL=CHANEL_VOX_CRAFT
+
+ENABLE_VOX_CRAFT=false
+MONGO_URI=mongodb://mongodb-ip:27017/discordbot #if vox-craft enabled
+VOX_CHANNEL=VOX_CRAFT_CHANNEL_ID #if vox-craft enabled
+
+ENABLE_WELCOME_MSG=false
+WELCOME_MSG=This is your Custom message #if msg enabled
+WELCOME_CHANNEL_ID=ID_of_the_welcome_channel # if msg enabled
+
+ENABLE_WELCOME_ROLE=false
+DEFAULT_ROLE_ID=ID_of_the_default_role #if welcome role enabled
 ```
 ### 2. Docker Compose
 Create a `docker-compose.yml` file in the same directory:
