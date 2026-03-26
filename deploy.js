@@ -85,7 +85,7 @@ const voxCommands = [
 ];
 
 // Die Logik zum Zusammenführen:
-const voxCraftEnabled = process.env.ENABLE_VOX_CRAFT !== 'true';
+const voxCraftEnabled = process.env.ENABLE_VOX_CRAFT !== 'false';
 
 // Wir erstellen eine finale Liste
 const finalCommands = [...commands]; // Startet mit den Standard-Commands
