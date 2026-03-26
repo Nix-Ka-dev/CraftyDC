@@ -40,6 +40,7 @@ Earn XP through mining and selling to increase your rank. Your rank is automatic
 
 The easiest way to run CraftyDC is by using Docker Compose.
 ### 1. Preparation
+The bot needs the Gateway Intents Guilds and Guild Members.
 
 Create a folder for the bot and set up a `.env` file (or `stack.env` for Portainer) with your credentials:
 ```env
