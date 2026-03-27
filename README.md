@@ -1,4 +1,5 @@
 ## Features
+- **New Feature now you can stop, start, restart and kill the server via bot command**
 
 - Self-Whitelist: Players can add themselves to the whitelist without admin assistance.
 
@@ -20,6 +21,7 @@
 
 | **Command**     | **Description**                                              | **Visibility**      |
 | --------------- | ------------------------------------------------------------ | ------------------- |
+| `/action`    | (Admin) start, stop, restart or kill the mc sevrer               | Ephemeral (Private) |
 | `/whitelist`    | Add your Minecraft username to the whitelist.                | Ephemeral (Private) |
 | `/serverstatus` | Displays online status, player count, and more.              | Ephemeral (Private) |
 | `/op`         | (Admin) Make a player an operator on your server             | Ephermal (Private)  |
