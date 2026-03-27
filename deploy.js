@@ -34,6 +34,19 @@ const commands = [
     ]
   },
   {
+    name: "action",
+    description: "Execute a server action",
+    default_member_permissions: 0x00000008,
+    options: [
+      {
+        name: "name",
+        type: 3,
+        description: "Name of action",
+        required: true
+      }
+    ]
+  },
+  {
     name: "serverstatus",
     description: "Shows the Minecraft server status"
   }
@@ -84,14 +97,13 @@ const voxCommands = [
   }
 ];
 
-// Die Logik zum Zusammenführen:
+//combines command lists
 const voxCraftEnabled = process.env.ENABLE_VOX_CRAFT !== 'false';
 
-// Wir erstellen eine finale Liste
-const finalCommands = [...commands]; // Startet mit den Standard-Commands
+const finalCommands = [...commands]; //loads the basic commands first
 
 if (voxCraftEnabled) {
-    finalCommands.push(...voxCommands); // Fügt die Vox-Commands hinzu, wenn aktiv
+    finalCommands.push(...voxCommands); // loads the voxcraft commands if enabled
 }
 
 const rest = new REST({ version: "10" }).setToken(DISCORD_BOT_TOKEN);
