@@ -34,17 +34,23 @@ const commands = [
     ]
   },
   {
-    name: "action",
-    description: "Execute a server action",
-    default_member_permissions: 0x00000008,
-    options: [
-      {
-        name: "name",
-        type: 3,
-        description: "Name of action",
-        required: true
-      }
-    ]
+  name: "action",
+  description: "Execute a server action",
+  default_member_permissions: "8", // Entspricht Administrator
+  options: [
+    {
+      name: "name",
+      description: "Select the action to perform",
+      type: 3, // String type
+      required: true,
+      choices: [
+        { name: "Start Server", value: "start_server" },
+        { name: "Stop Server", value: "stop_server" },
+        { name: "Restart Server", value: "restart_server" },
+        { name: "Kill Server (Force Stop)", value: "kill_server" }
+      ]
+    }
+  ]
   },
   {
     name: "serverstatus",

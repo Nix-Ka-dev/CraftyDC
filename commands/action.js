@@ -3,18 +3,34 @@ import { sendAction } from "../utils/crafty.js";
 export default {
     name: "action",
     description: "Execute a server action",
+    // Permissions-Check direkt im Command-Objekt (optional, aber sauberer)
+    default_member_permissions: "8", 
     async execute(interaction) {
+        // Sicherstellen, dass nur Admins den Command nutzen können
         if (!interaction.memberPermissions.has("Administrator")) {
-            return interaction.reply({ content: "You don't have permission.", ephemeral: true });
+            return interaction.reply({ 
+                content: "You don't have permission to use this command.", 
+                ephemeral: true 
+            });
         }
 
-        const name = interaction.options.getString("name");
-        const result = await sendAction(name);
+        const actionValue = interaction.options.getString("name");
+        
+        // Erstmal die Antwort "aufschieben", falls die API etwas länger braucht
+        await interaction.deferReply({ ephemeral: true });
+
+        const result = await sendAction(actionValue);
 
         if (result.status === "ok") {
-            return interaction.reply({ content: `Action executed successfully.`, ephemeral: true });
+            // Wir machen die Erfolgsmeldung etwas schöner
+            return interaction.editReply({ 
+                content: `Action **${actionValue.replace('_', ' ')}** was sent successfully to Crafty.` 
+            });
         }
 
-        interaction.reply({ content: `Failed: ${result.error}`, ephemeral: true });
+        // Fehlermeldung
+        interaction.editReply({ 
+            content: `❌ Failed to execute action: ${result.error || "Unknown error"}` 
+        });
     }
 };
