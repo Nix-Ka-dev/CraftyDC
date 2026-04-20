@@ -34,28 +34,32 @@ client.on("ready", (c) => {
 });
 const welcomeEnabled = process.env.ENABLE_WELCOME_MSG !== 'false';
 const welcomeRoleEnabled = process.env.ENABLE_WELCOME_ROLE !== 'false';
-const rawMsg = process.env.WELCOME_MSG || "👋 Hallooo {user}! \nWelcome!";
-
-// 1. {user} durch das member-Objekt ersetzen
-// 2. \\n (Text) durch \n (echten Umbruch) ersetzen
-const finalMsg = rawMsg
-    .replace("{user}", member) 
-    .replace(/\\n/g, '\n');
 
 client.on("guildMemberAdd", async (member) => {
     try {
-        // 1. Willkommensnachricht (Optional)
+        // 1. Willkommensnachricht
         if (welcomeEnabled) {
             const channel = member.guild.channels.cache.get(process.env.WELCOME_CHANNEL_ID);
+            
             if (channel) {
-                await channel.send(process.env.WELCOME_MSG || `👋 Heey ${member}! \nWelcome to the server!`);
+                // Den Text aus der .env holen
+                const rawMsg = process.env.WELCOME_MSG || "👋 Hallooo {user}! \nWelcome!";
+
+                // WICHTIG: Die Ersetzung muss HIER passieren, wenn ein Mitglied beitritt
+                const finalMsg = rawMsg
+                    .replace("{user}", member)    // Ersetzt den Platzhalter durch die Erwähnung
+                    .replace(/\\n/g, '\n');       // Wandelt Text-\n in echte Zeilenumbrüche um
+
+                await channel.send(finalMsg);
             }
         }
-        if (welcomeRoleEnabled){
+
+        // 2. Rollenzuweisung
+        if (welcomeRoleEnabled) {
             const role = member.guild.roles.cache.get(process.env.DEFAULT_ROLE_ID);
-        if (role) {
-            await member.roles.add(role);
-        }   
+            if (role) {
+                await member.roles.add(role);
+            }
         }
     } catch (err) {
         console.error("Error handling new member:", err);
