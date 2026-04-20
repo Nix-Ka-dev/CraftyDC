@@ -23,13 +23,13 @@ for (const file of commandFiles) {
     const command = await import(`./commands/${file}`);
     client.commands.set(command.default.name, command.default);
 }
-
+const PresenceText = process.env.PRESENCE_TEXT || "Crafty API";
 // Ready
 client.on("ready", (c) => {
     console.log(`Bot logged in as ${c.user.tag}`);
     c.user.setPresence({
         status: "online",
-        activities: [{ name: "Crafty API", type: ActivityType.Watching }],
+        activities: [{ name: PresenceText, type: ActivityType.Watching }],
     });
 });
 const welcomeEnabled = process.env.ENABLE_WELCOME_MSG !== 'false';
