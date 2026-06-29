@@ -1,3 +1,5 @@
+Moved to https://gitlab.nixka.org/nixka/CraftyDC
+
 ## Features
 - **New Feature now you can stop, start, restart and kill the server via bot command**
 
